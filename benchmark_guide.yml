@@ -1,0 +1,16 @@
+Qwen/Qwen3-0.6B-2k:
+  model: Qwen/Qwen3-0.6B
+  tp_size: 1
+  max_seq_len: 40960
+  block_size: 4096
+  max_num_sequences: [1, 2, 4, 8]
+  len: 2048
+
+Qwen/Qwen3-0.6B-2k-optimum:
+  model: Qwen/Qwen3-0.6B
+  tp_size: 1
+  max_seq_len: 40960
+  block_size: 4096
+  max_num_sequences: [1, 2, 4, 8]
+  len: 2048
+  platform: optimum

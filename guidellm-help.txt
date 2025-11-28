@@ -1,0 +1,119 @@
+Usage: guidellm benchmark from-file [OPTIONS] [PATH]
+
+  Load a saved benchmark report and optionally re-export to other formats.
+  PATH: Path to the saved benchmark report file (default: ./benchmarks.json).
+
+Options:
+  --output-path PATH     Directory or file path to save re-exported benchmark
+                         results. If a directory, all output formats will be
+                         saved there. If a file, the matching format will be
+                         saved to that file.
+  --output-formats TEXT  Output formats for benchmark results (e.g., console,
+                         json, html, csv).
+  --help                 Show this message and exit.
+root@d7b17c23597a:/workspace/vllm-rbln# guidellm benchmark run --help      
+Usage: guidellm benchmark run [OPTIONS]
+
+  Run a benchmark against a generative model. Supports multiple backends, data
+  sources, strategies, and output formats. Configuration can be loaded from a
+  scenario file or specified via options.
+
+Options:
+  -c, --scenario [file|[rag|rag.json|chat|chat.json]]
+                                  Builtin scenario name or path to config
+                                  file. CLI options override scenario
+                                  settings.
+  --target TEXT                   Target backend URL (e.g.,
+                                  http://localhost:8000).
+  --data TEXT                     HuggingFace dataset ID, path to dataset,
+                                  path to data file (csv/json/jsonl/txt), or
+                                  synthetic data config (json/key=value).
+  --profile, --rate-type [async|poisson|concurrent|throughput|constant|sweep|synchronous]
+                                  Benchmark profile type. Options: async,
+                                  poisson, concurrent, throughput, constant,
+                                  sweep, synchronous.
+  --rate TEXT                     Benchmark rate(s) to test. Meaning depends
+                                  on profile: sweep=number of benchmarks,
+                                  concurrent=concurrent requests,
+                                  async/constant/poisson=requests per second.
+  --backend, --backend-type [openai_http]
+                                  Backend type. Options: openai_http.
+  --backend-kwargs, --backend-args TEXT
+                                  JSON string of arguments to pass to the
+                                  backend.
+  --model TEXT                    Model ID to benchmark. If not provided, uses
+                                  first available model.
+  --request-type [audio_transcriptions|chat_completions|text_completions|audio_translations]
+                                  Request type to create for each data sample.
+                                  Options: audio_transcriptions,
+                                  chat_completions, text_completions,
+                                  audio_translations.
+  --request-formatter-kwargs TEXT
+                                  JSON string of arguments to pass to the
+                                  request formatter.
+  --processor TEXT                Processor or tokenizer for token count
+                                  calculations. If not provided, loads from
+                                  model.
+  --processor-args TEXT           JSON string of arguments to pass to the
+                                  processor constructor.
+  --data-args TEXT                JSON string of arguments to pass to dataset
+                                  creation.
+  --data-samples INTEGER          Number of samples from dataset. -1 (default)
+                                  uses all samples and dynamically generates
+                                  more.
+  --data-column-mapper TEXT       JSON string of column mappings to apply to
+                                  the dataset.
+  --data-sampler [shuffle]        Data sampler type.
+  --data-num-workers INTEGER      Number of worker processes for data loading.
+  --dataloader-kwargs TEXT        JSON string of arguments to pass to the
+                                  dataloader constructor.
+  --random-seed INTEGER           Random seed for reproducibility.
+  --output-dir DIRECTORY          The directory path to save file output types
+                                  in
+  --outputs TEXT                  The filename.ext for each of the outputs to
+                                  create or the alises (json, csv, html) for
+                                  the output files to create with their
+                                  default file names (benchmark.[EXT])
+  --output-path PATH              Legacy parameter for the output path to save
+                                  the output result to. Resolves to fill in
+                                  output-dir and outputs based on input path.
+  --disable-console, --disable-console-outputs
+                                  Disable all outputs to the console (updates,
+                                  interactive progress, results).
+  --disable-console-interactive, --disable-progress
+                                  Disable interactive console progress
+                                  updates.
+  --warmup, --warmup-percent TEXT
+                                  Warmup specification: int, float, or dict as
+                                  string (json or key=value). Controls time or
+                                  requests before measurement starts. Numeric
+                                  in (0, 1): percent of duration or request
+                                  count. Numeric >=1: duration in seconds or
+                                  request count. Advanced config: see
+                                  TransientPhaseConfig schema.
+  --cooldown, --cooldown-percent TEXT
+                                  Cooldown specification: int, float, or dict
+                                  as string (json or key=value). Controls time
+                                  or requests after measurement ends. Numeric
+                                  in (0, 1): percent of duration or request
+                                  count. Numeric >=1: duration in seconds or
+                                  request count. Advanced config: see
+                                  TransientPhaseConfig schema.
+  --rampup FLOAT                  The time, in seconds, to ramp up the request
+                                  rate over. Only applicable for
+                                  Throughput/Concurrent strategies
+  --sample-requests, --output-sampling INTEGER
+                                  Number of sample requests per status to
+                                  save. None (default) saves all, recommended:
+                                  20.
+  --max-seconds FLOAT             Maximum seconds per benchmark. If None, runs
+                                  until max_requests or data exhaustion.
+  --max-requests INTEGER          Maximum requests per benchmark. If None,
+                                  runs until max_seconds or data exhaustion.
+  --max-errors INTEGER            Maximum errors before stopping the
+                                  benchmark.
+  --max-error-rate FLOAT          Maximum error rate before stopping the
+                                  benchmark.
+  --max-global-error-rate FLOAT   Maximum global error rate across all
+                                  benchmarks.
+  --help                          Show this message and exit.
