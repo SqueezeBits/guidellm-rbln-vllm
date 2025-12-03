@@ -1,13 +1,24 @@
 # guidellm-rbln-vllm
 
-## How to benchmark
+Tools for benchmarking vLLM performance with RBLN backend support.
 
-1. write benchmark config file (see `benchmark_guide.yml`)
-2. run `python running_benchmarks.py`
+## Usage
 
+### 1. Run Benchmark
 
-## Get data from csv file
+1. Configure your benchmark scenarios in `benchmark_guide.yml`.
+2. Run the benchmark script:
 
 ```bash
-python extrace_metric.py rests/your/benchmark/result.csv
+python running_benchmarks.py
+# Or with a custom config file:
+# python running_benchmarks.py --guide-file your_config.yml
+```
+
+### 2. Analyze Results
+
+Extract key metrics from the generated CSV results:
+
+```bash
+python extract_metrics.py results/your/benchmark/result.csv
 ```
