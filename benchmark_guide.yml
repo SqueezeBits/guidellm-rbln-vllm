@@ -3,14 +3,38 @@ Qwen/Qwen3-0.6B-2k:
   tp_size: 1
   max_seq_len: 40960
   block_size: 4096
-  max_num_sequences: [1, 2, 4, 8]
+  max_num_sequences: [1]
   len: 2048
+  platform: torch_compile
+  duration: 100
 
 Qwen/Qwen3-0.6B-2k-optimum:
   model: Qwen/Qwen3-0.6B
   tp_size: 1
   max_seq_len: 40960
   block_size: 4096
-  max_num_sequences: [1, 2, 4, 8]
+  max_num_sequences: [1]
   len: 2048
   platform: optimum
+  duration: 100
+
+
+Llama-2-7b-chat-hf:
+  model: meta-llama/Llama-2-7b-chat-hf
+  tp_size: 4
+  max_seq_len: 4096
+  block_size: 4096
+  max_num_sequences: [1, 8]
+  len: 2048
+  platform: torch_compile
+  duration: 100
+
+Llama-2-7b-chat-hf-optimum:
+  model: meta-llama/Llama-2-7b-chat-hf
+  tp_size: 4
+  max_seq_len: 4096
+  block_size: 4096
+  max_num_sequences: [1, 8]
+  len: 2048
+  platform: optimum
+  duration: 100

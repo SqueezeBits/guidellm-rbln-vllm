@@ -8,19 +8,24 @@ MAX_SEQ_LEN=4096
 BLOCK_SIZE=4096
 LENGTH=2048
 MAX_NUM_SEQS=8
+PLATFORM="torch_compile"
+DURATION=1800 # 30 minutes
 
+CHUNK_SIZE=128
 # Function to print usage
 usage() {
     echo "Usage: $0 [OPTIONS]"
     echo "Options:"
+    echo "  -p, --platform <name>      Platform to use: 'torch_compile' or 'optimum' (default: $PLATFORM)"
     echo "  -m, --model-id <name>      Model ID (default: $MODEL_ID)"
     echo "  -t, --tp-size <num>        Tensor Parallel size (default: $TP_SIZE)"
     echo "  -s, --max-seq-len <num>    Max sequence length (default: $MAX_SEQ_LEN)"
     echo "  -b, --block-size <num>     Block size (default: $BLOCK_SIZE)"
     echo "  -n, --max-num-seqs <num>   Max number of sequences (default: $MAX_NUM_SEQS)"
     echo "  -H, --host <ip>            Host IP (default: $host)"
-    echo "  -p, --port <num>           Port number (default: $port)"
+    echo "  -P, --port <num>           Port number (default: $port)"
     echo "  -l, --length <num>         Length of the prompt and output tokens (default: $LENGTH)"
+    echo "  -d, --duration <num>       Duration of the single benchmark in seconds (default: $DURATION)"
     echo "  -h, --help                 Show this help message"
     exit 1
 }
@@ -28,6 +33,10 @@ usage() {
 # Parse command line arguments
 while [[ $# -gt 0 ]]; do
     case $1 in
+        -p|--platform)
+            PLATFORM="$2"
+            shift 2
+            ;;
         -m|--model-id)
             MODEL_ID="$2"
             shift 2
@@ -52,12 +61,16 @@ while [[ $# -gt 0 ]]; do
             host="$2"
             shift 2
             ;;
-        -p|--port)
+        -P|--port)
             port="$2"
             shift 2
             ;;
         -l|--length)
             LENGTH="$2"
+            shift 2
+            ;;
+        -d|--duration)
+            DURATION="$2"
             shift 2
             ;;
         -h|--help)
@@ -71,6 +84,12 @@ while [[ $# -gt 0 ]]; do
 done
 
 MODEL_NAME=${MODEL_ID##*/}
+
+# if platform is not in ['torch_compile', 'optimum'], exit
+if [ "$PLATFORM" != "torch_compile" ] && [ "$PLATFORM" != "optimum" ]; then
+    echo "Invalid platform: $PLATFORM, use 'torch_compile' or 'optimum' as platform"
+    exit 1
+fi
 
 # Function to check if server is ready
 check_server_health() {
@@ -110,12 +129,41 @@ cleanup_server() {
 }
 
 
-output_dir="results/no_sampler/${MODEL_NAME}/mb_${MAX_NUM_SEQS}_len_${LENGTH}_tp_${TP_SIZE}_seq_${MAX_SEQ_LEN}_block_${BLOCK_SIZE}_length_${LENGTH}"
+output_dir="results/greedy_sample/${MODEL_NAME}/${PLATFORM}-tp_${TP_SIZE}-mb_${MAX_NUM_SEQS}-seq_len_${MAX_SEQ_LEN}-block_${BLOCK_SIZE}-io_len_${LENGTH}"
 mkdir -p ${output_dir}
 
 
+if [ "$PLATFORM" == "optimum" ]; then
+    if [ $MAX_SEQ_LEN -eq $BLOCK_SIZE ]; then
+        attn_impl="eager"
+    else
+        attn_impl="flash_attn"
+    fi
+    USE_VLLM_MODEL=0
+    OPTIMUM_RBLN_MODEL_PATH="model_optimum-${MODEL_NAME}-tp_${TP_SIZE}-mb_${MAX_NUM_SEQS}-attn_${attn_impl}-seq_len_${MAX_SEQ_LEN}-block_${BLOCK_SIZE}"
+    echo "Compiling optimum model ${MODEL_ID} with the following arguments: ${OPTIMUM_RBLN_MODEL_PATH}"
+    python3 compile_optimum_rbln.py \
+        $MODEL_ID \
+        --output-dir $OPTIMUM_RBLN_MODEL_PATH \
+        --max-num-seqs ${MAX_NUM_SEQS} \
+        --max-model-len ${MAX_SEQ_LEN} \
+        --block-size ${BLOCK_SIZE} \
+        --enable-chunked-prefill \
+        --max-num-batched-tokens ${CHUNK_SIZE} \
+        --tensor-parallel-size ${TP_SIZE} \
+        --attn-impl ${attn_impl} >& ${output_dir}/compile_optimum_rbln.log
+    echo "Compiled model saved to ${OPTIMUM_RBLN_MODEL_PATH}"
+    MODEL_PATH=$OPTIMUM_RBLN_MODEL_PATH
+else
+    USE_VLLM_MODEL=1
+    MODEL_PATH=$MODEL_ID
+fi
+
+
+
 echo "Starting server with max_num_sequences: ${MAX_NUM_SEQS} "
-RBLN_KERNEL_MODE=triton VLLM_RBLN_TP_SIZE=${TP_SIZE} VLLM_RBLN_USE_VLLM_MODEL=1 VLLM_DISABLE_COMPILE_CACHE=1 VLLM_USE_V1=1 vllm serve $MODEL_ID \
+RBLN_KERNEL_MODE=triton VLLM_RBLN_SAMPLER=0 VLLM_RBLN_TP_SIZE=${TP_SIZE} VLLM_RBLN_USE_VLLM_MODEL=${USE_VLLM_MODEL} VLLM_DISABLE_COMPILE_CACHE=1 VLLM_USE_V1=1 \
+    vllm serve $MODEL_PATH \
     --tokenizer $MODEL_ID \
     --host ${host} \
     --port ${port} \
@@ -123,7 +171,7 @@ RBLN_KERNEL_MODE=triton VLLM_RBLN_TP_SIZE=${TP_SIZE} VLLM_RBLN_USE_VLLM_MODEL=1 
     --max-model-len ${MAX_SEQ_LEN} \
     --block-size ${BLOCK_SIZE} \
     --enable-chunked-prefill \
-    --max-num-batched-tokens 128 \
+    --max-num-batched-tokens ${CHUNK_SIZE} \
     >& ${output_dir}/vllm_server.log &
 
 SERVER_PID=$!
@@ -135,20 +183,25 @@ if ! check_server_health; then
     cleanup_server
     continue
 fi
-    
 
+echo "Starting benchmark with duration: ${DURATION} seconds"
 guidellm benchmark \
     --request-type  text_completions \
     --profile concurrent  --rate ${MAX_NUM_SEQS} \
-    --backend-args "{\"timeout\": 1800}" \
+    --backend-args "{\"timeout\": ${DURATION}}" \
     --request-formatter-kwargs '{"extras":{"body":{"temperature":0.0}}}' \
     --data "prompt_tokens=${LENGTH},output_tokens=${LENGTH},prompt_tokens_min=${LENGTH},prompt_tokens_max=${LENGTH},output_tokens_min=${LENGTH},output_tokens_max=${LENGTH}" \
-    --model $MODEL_ID \
+    --model $MODEL_PATH \
     --target http://${host}:${port} \
-    --max-seconds 1800 \
+    --max-seconds ${DURATION} \
     --warmup 1  --cooldown 1 \
     --output-dir ${output_dir} \
     >& ${output_dir}/guidellm_benchmark.log
+
+if [ "$PLATFORM" == "optimum" ]; then
+    rm -rf $OPTIMUM_RBLN_MODEL_PATH
+    echo "Removed optimum model ${OPTIMUM_RBLN_MODEL_PATH}"
+fi
 
 cleanup_server
 SERVER_PID=""

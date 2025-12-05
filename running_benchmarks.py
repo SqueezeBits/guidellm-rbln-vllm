@@ -9,20 +9,13 @@ import argparse
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--guide-file", type=str, default="benchmark_guide.yml")
+    parser.add_argument("--benchmark-script", type=str, default="benchmark.sh")
     args = parser.parse_args()
 
     # 파일 경로 설정 (현재 스크립트 위치 기준)
     script_dir = os.path.dirname(os.path.abspath(__file__))
     guide_path = os.path.join(script_dir, args.guide_file)
-    benchmark_script = os.path.join(script_dir, "benchmark.sh")
-    optimum_benchmark_script = os.path.join(script_dir, "optimum_benchmark.sh")
-    
-    # benchmark.sh에 실행 권한 부여
-    if os.path.exists(benchmark_script):
-        os.chmod(benchmark_script, 0o755)
-    else:
-        print(f"Error: Benchmark script not found at {benchmark_script}")
-        sys.exit(1)
+    benchmark_script = os.path.join(script_dir, args.benchmark_script)    
 
     if not os.path.exists(guide_path):
         print(f"Error: Guide file not found at {guide_path}")
@@ -61,14 +54,13 @@ def main():
         max_seq_len = settings.get('max_seq_len', 4096)
         block_size = settings.get('block_size', 4096)
         length = settings.get('len', 2048)
+        duration = settings.get('duration', 1800)
         max_num_sequences_list = settings.get('max_num_sequences')
         platform = settings.get('platform', 'torch_compile')
         
         if not platform in ['torch_compile', 'optimum']:
             print(f"Skipping {model_name}: 'platform' parameter is not valid, skipping...")
             continue
-
-        target_script = benchmark_script if platform == 'torch_compile' else optimum_benchmark_script
 
         if not model_id:
             print(f"Skipping {model_name}: 'model' parameter missing")
@@ -85,13 +77,15 @@ def main():
             print(f"--> Running configuration: max_num_seqs={max_num_seqs}, length={length}")
             
             cmd = [
-                target_script,
+                benchmark_script,
+                "--platform", str(platform),
                 "--model-id", str(model_id),
                 "--tp-size", str(tp_size),
                 "--max-seq-len", str(max_seq_len),
                 "--block-size", str(block_size),
                 "--length", str(length),
-                "--max-num-seqs", str(max_num_seqs)
+                "--max-num-seqs", str(max_num_seqs),
+                "--duration", str(duration)
             ]
             print(f"Running command: {' '.join(cmd)}")
             try:
