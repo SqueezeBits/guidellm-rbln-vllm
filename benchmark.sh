@@ -3,7 +3,11 @@
 host="127.0.0.1"
 port=30001
 MODEL_ID="meta-llama/Llama-2-7b-chat-hf"
-TP_SIZE=4
+TP_SIZE=1
+DP_SIZE=1
+PP_SIZE=1
+ENABLE_EP=0
+RSD_SIZE=1
 MAX_SEQ_LEN=4096
 BLOCK_SIZE=4096
 LENGTH=2048
@@ -18,7 +22,11 @@ usage() {
     echo "Options:"
     echo "  -p, --platform <name>      Platform to use: 'torch_compile' or 'optimum' (default: $PLATFORM)"
     echo "  -m, --model-id <name>      Model ID (default: $MODEL_ID)"
-    echo "  -t, --tp-size <num>        Tensor Parallel size (default: $TP_SIZE)"
+    echo "  -tp, --tp-size <num>       Tensor Parallel size (default: $TP_SIZE)"
+    echo "  -dp, --dp-size <num>       Data Parallel size (default: $DP_SIZE)"
+    echo "  -pp, --pp-size <num>       Pipeline Parallel size (default: $PP_SIZE)"
+    echo "  -ep, --enable-ep <num>     Enable Expert Parallel (default: $ENABLE_EP)"
+    echo "  -rsd, --rsd-size <num>     RSD(Rebellion Scalable Design) size (default: $RSD_SIZE)"
     echo "  -s, --max-seq-len <num>    Max sequence length (default: $MAX_SEQ_LEN)"
     echo "  -b, --block-size <num>     Block size (default: $BLOCK_SIZE)"
     echo "  -n, --max-num-seqs <num>   Max number of sequences (default: $MAX_NUM_SEQS)"
@@ -41,8 +49,24 @@ while [[ $# -gt 0 ]]; do
             MODEL_ID="$2"
             shift 2
             ;;
-        -t|--tp-size)
+        -tp|--tp-size)
             TP_SIZE="$2"
+            shift 2
+            ;;
+        -dp|--dp-size)
+            DP_SIZE="$2"
+            shift 2
+            ;;
+        -pp|--pp-size)
+            PP_SIZE="$2"
+            shift 2
+            ;;
+        -ep|--enable-ep)
+            ENABLE_EP="$2"
+            shift 2
+            ;;
+        -rsd|--rsd-size)
+            RSD_SIZE="$2"
             shift 2
             ;;
         -s|--max-seq-len)
@@ -129,7 +153,7 @@ cleanup_server() {
 }
 
 
-output_dir="results/greedy_sample/${MODEL_NAME}/${PLATFORM}-tp_${TP_SIZE}-mb_${MAX_NUM_SEQS}-seq_len_${MAX_SEQ_LEN}-block_${BLOCK_SIZE}-io_len_${LENGTH}"
+output_dir="results/greedy_sample/${MODEL_NAME}/${PLATFORM}-tp_${TP_SIZE}-dp_${DP_SIZE}-pp_${PP_SIZE}-ep_${ENABLE_EP}-rsd_${RSD_SIZE}-mb_${MAX_NUM_SEQS}-seq_len_${MAX_SEQ_LEN}-block_${BLOCK_SIZE}-io_len_${LENGTH}"
 mkdir -p ${output_dir}
 
 
@@ -140,7 +164,7 @@ if [ "$PLATFORM" == "optimum" ]; then
         attn_impl="flash_attn"
     fi
     USE_VLLM_MODEL=0
-    OPTIMUM_RBLN_MODEL_PATH="model_optimum-${MODEL_NAME}-tp_${TP_SIZE}-mb_${MAX_NUM_SEQS}-attn_${attn_impl}-seq_len_${MAX_SEQ_LEN}-block_${BLOCK_SIZE}"
+    OPTIMUM_RBLN_MODEL_PATH="model_optimum-${MODEL_NAME}-rsd_${RSD_SIZE}-mb_${MAX_NUM_SEQS}-attn_${attn_impl}-seq_len_${MAX_SEQ_LEN}-block_${BLOCK_SIZE}"
     echo "Compiling optimum model ${MODEL_ID} with the following arguments: ${OPTIMUM_RBLN_MODEL_PATH}"
     python3 compile_optimum_rbln.py \
         $MODEL_ID \
@@ -150,7 +174,7 @@ if [ "$PLATFORM" == "optimum" ]; then
         --block-size ${BLOCK_SIZE} \
         --enable-chunked-prefill \
         --max-num-batched-tokens ${CHUNK_SIZE} \
-        --tensor-parallel-size ${TP_SIZE} \
+        --tensor-parallel-size ${RSD_SIZE} \
         --attn-impl ${attn_impl} >& ${output_dir}/compile_optimum_rbln.log
     echo "Compiled model saved to ${OPTIMUM_RBLN_MODEL_PATH}"
     MODEL_PATH=$OPTIMUM_RBLN_MODEL_PATH
@@ -162,7 +186,10 @@ fi
 
 
 echo "Starting server with max_num_sequences: ${MAX_NUM_SEQS} "
-RBLN_KERNEL_MODE=triton VLLM_RBLN_SAMPLER=0 VLLM_RBLN_TP_SIZE=${TP_SIZE} VLLM_RBLN_USE_VLLM_MODEL=${USE_VLLM_MODEL} VLLM_DISABLE_COMPILE_CACHE=1 VLLM_USE_V1=1 \
+if [[ "$ENABLE_EP" -eq 1 ]]; then
+    RBLN_KERNEL_MODE=triton RBLN_ROOT_IP=${host} RBLN_LOCAL_IP=${host} \
+    VLLM_RBLN_SAMPLER=0 VLLM_RBLN_TP_SIZE=${RSD_SIZE} VLLM_RBLN_USE_VLLM_MODEL=${USE_VLLM_MODEL} VLLM_DISABLE_COMPILE_CACHE=1 VLLM_USE_V1=1 \
+    VLLM_RBLN_USE_MOE_TOKENS_MASK=1 RBLN_RSD_EP=1 RBLN_MOE_OPT=1 VLLM_RBLN_MOE_USE_OPT_KERNEL=1 \
     vllm serve $MODEL_PATH \
     --tokenizer $MODEL_ID \
     --host ${host} \
@@ -172,7 +199,28 @@ RBLN_KERNEL_MODE=triton VLLM_RBLN_SAMPLER=0 VLLM_RBLN_TP_SIZE=${TP_SIZE} VLLM_RB
     --block-size ${BLOCK_SIZE} \
     --enable-chunked-prefill \
     --max-num-batched-tokens ${CHUNK_SIZE} \
+    --tensor-parallel-size ${TP_SIZE} \
+    --data-parallel-size ${DP_SIZE} \
+    --pipeline-parallel-size ${PP_SIZE} \
+    --enable-expert-parallel \
     >& ${output_dir}/vllm_server.log &
+else
+    RBLN_KERNEL_MODE=triton RBLN_ROOT_IP=${host} RBLN_LOCAL_IP=${host} \
+    VLLM_RBLN_SAMPLER=0 VLLM_RBLN_TP_SIZE=${RSD_SIZE} VLLM_RBLN_USE_VLLM_MODEL=${USE_VLLM_MODEL} VLLM_DISABLE_COMPILE_CACHE=1 VLLM_USE_V1=1 \
+    vllm serve $MODEL_PATH \
+    --tokenizer $MODEL_ID \
+    --host ${host} \
+    --port ${port} \
+    --max-num-seqs ${MAX_NUM_SEQS} \
+    --max-model-len ${MAX_SEQ_LEN} \
+    --block-size ${BLOCK_SIZE} \
+    --enable-chunked-prefill \
+    --max-num-batched-tokens ${CHUNK_SIZE} \
+    --tensor-parallel-size ${TP_SIZE} \
+    --data-parallel-size ${DP_SIZE} \
+    --pipeline-parallel-size ${PP_SIZE} \
+    >& ${output_dir}/vllm_server.log &
+fi
 
 SERVER_PID=$!
 echo "Server started with PID: $SERVER_PID"

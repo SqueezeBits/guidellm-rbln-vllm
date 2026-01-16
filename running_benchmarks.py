@@ -51,6 +51,10 @@ def main():
         # 파라미터 추출 (기본값 설정 가능)
         model_id = settings.get('model')
         tp_size = settings.get('tp_size', 1)
+        dp_size = settings.get('dp_size', 1)
+        pp_size = settings.get('pp_size', 1)
+        enable_ep = settings.get('enable_ep', 0)
+        rsd_size = settings.get('rsd_size', 1)
         max_seq_len = settings.get('max_seq_len', 4096)
         block_size = settings.get('block_size', 4096)
         length = settings.get('len', 2048)
@@ -81,6 +85,10 @@ def main():
                 "--platform", str(platform),
                 "--model-id", str(model_id),
                 "--tp-size", str(tp_size),
+                "--dp-size", str(dp_size),
+                "--pp-size", str(pp_size),
+                "--enable-ep", str(enable_ep),
+                "--rsd-size", str(rsd_size),
                 "--max-seq-len", str(max_seq_len),
                 "--block-size", str(block_size),
                 "--length", str(length),
