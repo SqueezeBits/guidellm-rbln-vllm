@@ -1,0 +1,23 @@
+# qwen1.5-moe-15b dp4/ep4
+Qwen/Qwen1.5-MoE-A2.7B-2k-dp4:
+  model: Qwen/Qwen1.5-MoE-A2.7B
+  dp_size: 4
+  enable_ep: 1
+  max_seq_len: 8192
+  block_size: 4096
+  max_num_sequences: [1]
+  len: 2048
+  platform: torch_compile
+  duration: 100
+
+# qwen1.5-moe-15b tp4/ep4
+Qwen/Qwen1.5-MoE-A2.7B-2k-tp4:
+  model: Qwen/Qwen1.5-MoE-A2.7B
+  tp_size: 4
+  enable_ep: 1
+  max_seq_len: 8192
+  block_size: 4096
+  max_num_sequences: [1]
+  len: 2048
+  platform: torch_compile
+  duration: 100

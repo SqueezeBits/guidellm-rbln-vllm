@@ -1,0 +1,49 @@
+# qwen3-moe-30b dp8/ep8
+Qwen/Qwen3-30B-A3B-2k-dp8:
+  model: Qwen/Qwen3-30B-A3B
+  dp_size: 8
+  enable_ep: 1
+  max_seq_len: 40960
+  block_size: 8192
+  max_num_sequences: [1]
+  len: 2048
+  platform: torch_compile
+  duration: 100
+
+# qwen3-moe-30b tp8/ep8
+Qwen/Qwen3-30B-A3B-2k-tp8:
+  model: Qwen/Qwen3-30B-A3B
+  tp_size: 8
+  enable_ep: 1
+  max_seq_len: 40960
+  block_size: 8192
+  max_num_sequences: [1]
+  len: 2048
+  platform: torch_compile
+  duration: 100
+
+# qwen3-moe-30b dp2/ep2 + rsd4
+Qwen/Qwen3-30B-A3B-2k-dp2-rsd4:
+  model: Qwen/Qwen3-30B-A3B
+  dp_size: 2
+  enable_ep: 1
+  rsd_size: 4
+  max_seq_len: 40960
+  block_size: 8192
+  max_num_sequences: [1]
+  len: 2048
+  platform: torch_compile
+  duration: 100
+
+# qwen3-moe-30b tp2/ep2 + rsd4
+Qwen/Qwen3-30B-A3B-2k-tp2-rsd4:
+  model: Qwen/Qwen3-30B-A3B
+  tp_size: 2
+  enable_ep: 1
+  rsd_size: 4
+  max_seq_len: 40960
+  block_size: 8192
+  max_num_sequences: [1]
+  len: 2048
+  platform: torch_compile
+  duration: 100

@@ -1,0 +1,49 @@
+# gpt-oss-20b dp4/ep4
+openai/gpt-oss-20b-2k-dp4:
+  model: openai/gpt-oss-20b
+  dp_size: 4
+  enable_ep: 1
+  max_seq_len: 131072
+  block_size: 8192
+  max_num_sequences: [1]
+  len: 2048
+  platform: torch_compile
+  duration: 100
+
+# gpt-oss-20b tp4/ep4
+openai/gpt-oss-20b-2k-tp4:
+  model: openai/gpt-oss-20b
+  tp_size: 4
+  enable_ep: 1
+  max_seq_len: 131072
+  block_size: 8192
+  max_num_sequences: [1]
+  len: 2048
+  platform: torch_compile
+  duration: 100
+
+# gpt-oss-20b dp4/ep4 + rsd4
+openai/gpt-oss-20b-2k-dp4-rsd4:
+  model: openai/gpt-oss-20b
+  dp_size: 4
+  enable_ep: 1
+  rsd_size: 4
+  max_seq_len: 131072
+  block_size: 8192
+  max_num_sequences: [1]
+  len: 2048
+  platform: torch_compile
+  duration: 100
+
+# gpt-oss-20b tp4/ep4 + rsd4
+openai/gpt-oss-20b-2k-tp4-rsd4:
+  model: openai/gpt-oss-20b
+  tp_size: 4
+  enable_ep: 1
+  rsd_size: 4
+  max_seq_len: 131072
+  block_size: 8192
+  max_num_sequences: [1]
+  len: 2048
+  platform: torch_compile
+  duration: 100
