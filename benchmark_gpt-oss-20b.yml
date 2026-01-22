@@ -5,7 +5,7 @@ openai/gpt-oss-20b-2k-dp4:
   enable_ep: 1
   max_seq_len: 131072
   block_size: 8192
-  max_num_sequences: [1]
+  max_num_sequences: [1,4]
   len: 2048
   platform: torch_compile
   duration: 100
@@ -17,7 +17,7 @@ openai/gpt-oss-20b-2k-tp4:
   enable_ep: 1
   max_seq_len: 131072
   block_size: 8192
-  max_num_sequences: [1]
+  max_num_sequences: [1,4]
   len: 2048
   platform: torch_compile
   duration: 100
@@ -30,7 +30,7 @@ openai/gpt-oss-20b-2k-dp4-rsd4:
   rsd_size: 4
   max_seq_len: 131072
   block_size: 8192
-  max_num_sequences: [1]
+  max_num_sequences: [1,4]
   len: 2048
   platform: torch_compile
   duration: 100
@@ -43,7 +43,7 @@ openai/gpt-oss-20b-2k-tp4-rsd4:
   rsd_size: 4
   max_seq_len: 131072
   block_size: 8192
-  max_num_sequences: [1]
+  max_num_sequences: [1,4]
   len: 2048
   platform: torch_compile
   duration: 100

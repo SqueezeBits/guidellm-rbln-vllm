@@ -1,37 +1,58 @@
-Qwen/Qwen3-0.6B-2k:
-  model: Qwen/Qwen3-0.6B
-  max_seq_len: 40960
+Qwen/Qwen3-1.7B-2k:
+  model: Qwen/Qwen3-1.7B
+  max_seq_len: 4096
   block_size: 4096
-  max_num_sequences: [1]
+  max_num_sequences: [1,2,4,8]
   len: 2048
   platform: torch_compile
   duration: 100
 
-Qwen/Qwen3-0.6B-2k-optimum:
-  model: Qwen/Qwen3-0.6B
-  max_seq_len: 40960
-  block_size: 4096
-  max_num_sequences: [1]
-  len: 2048
-  platform: optimum
-  duration: 100
-
-Llama-2-7b-chat-hf:
-  model: meta-llama/Llama-2-7b-chat-hf
-  rsd_size: 4
+Qwen/Qwen3-1.7B-2k-pp2:
+  model: Qwen/Qwen3-1.7B
+  pp_size: 2
   max_seq_len: 4096
   block_size: 4096
-  max_num_sequences: [1, 8]
+  max_num_sequences: [1,2,4,8]
   len: 2048
   platform: torch_compile
   duration: 100
 
-Llama-2-7b-chat-hf-optimum:
-  model: meta-llama/Llama-2-7b-chat-hf
-  rsd_size: 4
+Qwen/Qwen3-1.7B-2k-dp2-pp2:
+  model: Qwen/Qwen3-1.7B
+  dp_size: 2
+  pp_size: 2
   max_seq_len: 4096
   block_size: 4096
-  max_num_sequences: [1, 8]
+  max_num_sequences: [1,2,4,8]
   len: 2048
-  platform: optimum
+  platform: torch_compile
   duration: 100
+
+#Qwen/Qwen3-0.6B-2k-optimum:
+#  model: Qwen/Qwen3-0.6B
+#  max_seq_len: 4096
+#  block_size: 4096
+#  max_num_sequences: [8]
+#  len: 2048
+#  platform: optimum
+#  duration: 100
+
+#Llama-2-7b-chat-hf:
+#  model: meta-llama/Llama-2-7b-chat-hf
+#  rsd_size: 4
+#  max_seq_len: 4096
+#  block_size: 4096
+#  max_num_sequences: [1, 8]
+#  len: 2048
+#  platform: torch_compile
+#  duration: 100
+#
+#Llama-2-7b-chat-hf-optimum:
+#  model: meta-llama/Llama-2-7b-chat-hf
+#  rsd_size: 4
+#  max_seq_len: 4096
+#  block_size: 4096
+#  max_num_sequences: [1, 8]
+#  len: 2048
+#  platform: optimum
+#  duration: 100

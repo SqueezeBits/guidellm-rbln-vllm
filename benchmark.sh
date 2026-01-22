@@ -186,6 +186,8 @@ fi
 
 
 echo "Starting server with max_num_sequences: ${MAX_NUM_SEQS} "
+max_concurrency=$((MAX_NUM_SEQS * DP_SIZE))
+echo "benchmark max_concurrency: ${max_concurrency}"
 if [[ "$ENABLE_EP" -eq 1 ]]; then
     RBLN_KERNEL_MODE=triton RBLN_ROOT_IP=${host} RBLN_LOCAL_IP=${host} \
     VLLM_RBLN_SAMPLER=0 VLLM_RBLN_TP_SIZE=${RSD_SIZE} VLLM_RBLN_USE_VLLM_MODEL=${USE_VLLM_MODEL} VLLM_DISABLE_COMPILE_CACHE=1 VLLM_USE_V1=1 \
@@ -233,9 +235,10 @@ if ! check_server_health; then
 fi
 
 echo "Starting benchmark with duration: ${DURATION} seconds"
+
 guidellm benchmark \
     --request-type  text_completions \
-    --profile concurrent  --rate ${MAX_NUM_SEQS} \
+    --profile concurrent  --rate ${max_concurrency} \
     --backend-args "{\"timeout\": ${DURATION}}" \
     --request-formatter-kwargs '{"extras":{"body":{"temperature":0.0}}}' \
     --data "prompt_tokens=${LENGTH},output_tokens=${LENGTH},prompt_tokens_min=${LENGTH},prompt_tokens_max=${LENGTH},output_tokens_min=${LENGTH},output_tokens_max=${LENGTH}" \
