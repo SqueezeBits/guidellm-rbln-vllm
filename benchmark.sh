@@ -188,8 +188,7 @@ echo "Starting benchmark with duration: ${DURATION} seconds"
 guidellm benchmark \
     --request-type  text_completions \
     --profile concurrent  --rate ${MAX_NUM_SEQS} \
-    --backend-args "{\"timeout\": ${DURATION}}" \
-    --request-formatter-kwargs '{"extras":{"body":{"temperature":0.0}}}' \
+    --backend-args "{\"extras\":{\"body\":{\"temperature\":0.0}}, \"timeout\": ${DURATION}}" \
     --data "prompt_tokens=${LENGTH},output_tokens=${LENGTH},prompt_tokens_min=${LENGTH},prompt_tokens_max=${LENGTH},output_tokens_min=${LENGTH},output_tokens_max=${LENGTH}" \
     --model $MODEL_PATH \
     --target http://${host}:${port} \
